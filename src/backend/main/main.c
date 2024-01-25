@@ -16,13 +16,15 @@
 
 #include <buffer.h>
 
+#include <O4inaDB.h>
+
 void 
 main(int argc, char *argv[])
 {
 
 	initBufferCache(3123);
-
-
+     
+    O4inaDBMain(); 
 
     printf("asdfjljl");
 

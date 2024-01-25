@@ -2,12 +2,12 @@
 
 typedef enum AttType
 {    
-    INT_16
-    INT_32   
-    INT_64          
-    FLOAT_32         
-    DOUBLE_64        
-    ARRCHAR         
+    INT_16,
+    INT_32,   
+    INT_64,          
+    FLOAT_32,         
+    DOUBLE_64,       
+    ARRCHAR,         
     PRIMARYKEY      
 } AttType;
 
@@ -18,7 +18,18 @@ typedef enum AttType
 #define INCREASE        1
 #define DECREASE        2
 
+#define GET_ATTRIBUTE_OFFSET(offset, att_num) \
+while (0) \
+{ \
+    for (int i = 0; i < (att_num); i++) \
+        (offset) += rel->att[i].size; \
+}
+
 typedef String AttName;
+typedef String RelName;
+
+#define RELATION_NAME_SIZE      51
+#define ATTRIBUTE_NAME_SIZE     51 
 
 typedef struct RelTupleNode {
     Pointer data;
@@ -62,6 +73,35 @@ typedef struct Relation {
     Size tup_size;
 
 } Relation;
+
+Relation *
+CopyRelationWithNoData(Relation* rel);
+
+Relation * 
+CopyRelation(Relation* rel);
+
+void 
+WriteRelation(Relation *rel, const char *name);
+
+void 
+ReadRelation(Relation* rel, const char* name);
+
+void 
+PushBackTupleList(Relation* rel, Pointer data, Size size);
+
+void 
+DeleteRelation(Relation* rel);
+
+Relation * 
+InitRelation(RelAttribute *att, int32 att_n);
+
+bool
+CheckExistTuple_Arrchar(Relation *rel, int32 att_num, 
+                        const char *str);
+bool
+CheckExistTuple_TwoArrchar(Relation *rel, 
+                           int32 att_num1, const char *str1, 
+                           int32 att_num2, const char *str2);
 /*
 void whererel_int32(rel** rarg, char cond, int attnum, int val);
 

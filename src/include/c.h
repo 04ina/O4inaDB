@@ -61,28 +61,6 @@ typedef char *String;
 #define max(a, b)  (((a) > (b)) ? (a) : (b)) 
 #define min(a, b)  (((a) < (b)) ? (a) : (b)) 
 
-#define MALLOC(point, data_type, size) \
-    do \
-    { \
-        (point) = ((data_type) *) malloc((size)); \
-        if ((point) == NULL) \
-        { \
-            fprintf(stderr, "Fatal: failed to allocate %u bytes.\n", (size) ); \
-            abort(); \
-        } \
-    } while(0)
-    
-#define CALLOC(point, data_type, number, size) \
-    do \
-    { \
-        (point) = ((data_type) *) calloc((number), (size)); \
-        if ((point) == NULL) \
-        { \
-            fprintf(stderr, "Fatal: failed to allocate %u bytes.\n", (number) * (size) ); \
-            abort(); \
-        } \
-    } while(0)
-
 #define FOPEN(fp, name, type) \
     do \
     { \
@@ -99,6 +77,16 @@ typedef char *String;
         if ( fwrite((data), (size), (count), (fp)) == (count)) \
         { \
             fprintf(stderr, "Fatal: fwrite() error\n"); \
+            abort(); \
+        } \
+    } while(0)
+
+#define CHECK_MALLOC_WORK(pt) \
+    do \
+    { \
+        if ((pt) == NULL) \
+        { \
+            fprintf(stderr, "Fatal: failed to allocate memory.\n"); \
             abort(); \
         } \
     } while(0)

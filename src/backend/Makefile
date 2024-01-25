@@ -13,6 +13,14 @@ all:
 	cd ..
 	cd access ; $(MAKE) -f Makefile
 	cd ..
+	cd parser ; $(MAKE) -f Makefile
+	cd ..
+	#cd executor ; $(MAKE) -f Makefile
+	#cd ..
+	cd catalog ; $(MAKE) -f Makefile
+	cd ..
+	cd tcop ; $(MAKE) -f Makefile
+	cd ..
 
 #	$(call make_dir, main)
 #	$(call make_dir, master)

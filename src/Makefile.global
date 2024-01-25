@@ -5,7 +5,12 @@ LIBS = -I$(top_builddir)/$(includedir)/main \
 	   -I$(top_builddir)/$(includedir)/master \
 	   -I$(top_builddir)/$(includedir)/utils \
 	   -I$(top_builddir)/$(includedir)/storage \
-	   -I$(top_builddir)/$(includedir)/access
+	   -I$(top_builddir)/$(includedir)/access \
+	   -I$(top_builddir)/$(includedir)/parser \
+	   -I$(top_builddir)/$(includedir)/executor \
+	   -I$(top_builddir)/$(includedir)/catalog \
+	   -I$(top_builddir)/$(includedir)/tcop \
+	   -I$(top_builddir)/$(includedir)
 
 define make_dir 
 	cd $1 ; $(MAKE) -f Makefile 

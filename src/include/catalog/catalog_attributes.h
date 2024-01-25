@@ -1,0 +1,1 @@
+#define NUM_ATT_CATALOG_ATTRIBUTES  4 
