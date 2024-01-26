@@ -18,13 +18,24 @@
 
 #include <O4inaDB.h>
 
+#include <relation.h>
+
+#define PushTuplesByComparison(_type, _comparison) \
+do \
+{ \
+	_type a = 45; \
+	if (a _comparison 47) printf("aboba"); \
+} \
+while(0)
+
 void 
 main(int argc, char *argv[])
 {
-
+	PushTuplesByComparison(int, ==);
 	initBufferCache(3123);
-     
-    O4inaDBMain(); 
+	
+
+//    O4inaDBMain(); 
 
     printf("asdfjljl");
 

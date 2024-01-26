@@ -3740,7 +3740,7 @@ GotStringArg(const char *str)
    switch (YYCurState)
    {
       case YYState_SELECT:
-         //
+      //   parse_tree.rel_name = 
          break;
       case YYState_FROM:
 

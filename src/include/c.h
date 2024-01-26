@@ -30,18 +30,18 @@ typedef signed int Offset;
 /*
  * Types for signed intN 
  */
-typedef signed char int8;
-typedef signed short int16;		
-typedef signed int int32;	
-typedef signed long long int int64;
+typedef signed char             int8;
+typedef signed short            int16;		
+typedef signed int              int32;	
+typedef signed long long int    int64;
 
 /*
  * Types for unsigned intN 
  */
-typedef unsigned char uint8;
-typedef unsigned short uint16;	
-typedef unsigned int uint32;
-typedef unsigned long long int uint64;
+typedef unsigned char           uint8;
+typedef unsigned short          uint16;	
+typedef unsigned int            uint32;
+typedef unsigned long long int  uint64;
 
 /*
  * Types for float 
@@ -50,14 +50,23 @@ typedef float float4;
 typedef double float8;
 
 /*
- * Type for names 
- */
-typedef char *Name;
-
-/*
  * String type
  */
 typedef char *String;
+
+/*
+ * Type of comparison 
+ */
+typedef enum ComparisonType 
+{
+    CT_EQUAL,
+    CT_NOT_EQUAL,
+    CT_LESS,
+    CT_MORE,
+    CT_LESS_OR_EQUAL,
+    CT_MORE_OR_EQUAL
+} ComparisonType;
+
 #define max(a, b)  (((a) > (b)) ? (a) : (b)) 
 #define min(a, b)  (((a) < (b)) ? (a) : (b)) 
 

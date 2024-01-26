@@ -74,6 +74,43 @@ rel* init_grades(void) {
 
 #include <relation.h>
 
+#define GET_ATTRIBUTE_OFFSET(_offset_, _att_num_) \
+do \
+{ \
+    for (int i = 0; i < _att_num_; i++) \
+        _offset_ += rel->att[i].size; \
+} while (0)
+
+#define PUSH_TUPLES_BY_COMPARISON(_type_, _comparison_) \
+do \
+{ \
+    for (int i = 0; i < rel->tup_n; i++) { \
+        if (*( (_type_ *) (cur_tup->data + offset)) _comparison_ val) \
+            PushBackTupleList(new_rel, cur_tup->data, rel->tup_size); \
+        cur_tup = cur_tup->next; \
+    } \
+} while(0)
+
+#define MERGE_SORT_LOOP_INT32(_comparison_) \
+do \
+{ \
+    for (int step = 0; step < (r - l + 1); step++) \
+    { \
+        if ((j > r) || \
+            ((i <= mid) && (val_arr[i] _comparison_ val_arr[j]))) \
+        { \
+            tmp1[step] = val_arr[i]; \
+            tmp2[step] = tup_arr[i]; \
+            i++; \
+        } \
+        else \
+        { \
+            tmp1[step] = val_arr[j]; \
+            tmp2[step] = tup_arr[j]; \
+            j++; \
+        } \
+    } \
+} while(0)
 
 Relation *
 CopyRelationWithNoData(Relation* rel) 
@@ -81,29 +118,17 @@ CopyRelationWithNoData(Relation* rel)
     Relation* new_rel;
 
     new_rel = (Relation *) malloc(sizeof(Relation)); 
-    if (new_rel == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", sizeof(Relation) ); 
-        abort(); 
-    } 
+    CHECK_MALLOC_WORK(new_rel);
 
     new_rel->tup_n = 0;
     new_rel->att_n = rel->att_n;
 
     new_rel->att = (RelAttribute *) calloc(rel->att_n, sizeof(RelAttribute)); 
-    if (new_rel->att == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", sizeof(RelAttribute) * rel->att_n ); 
-        abort(); 
-    } 
+    CHECK_MALLOC_WORK(new_rel->att);
 
     for (int i = 0; i < rel->att_n; i++) {
         new_rel->att[i].name = (char *) malloc(strlen(rel->att[i].name) + 1); 
-        if (new_rel->att[i].name == NULL) 
-        { 
-            fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", strlen(rel->att[i].name) + 1); 
-            abort(); 
-        } 
+        CHECK_MALLOC_WORK(new_rel->att[i].name);
 
         strcpy(new_rel->att[i].name, rel->att[i].name);
         new_rel->att[i].type = rel->att[i].type;
@@ -154,15 +179,11 @@ void
 ReadRelation(Relation* rel, const char* name) 
 {
     Pointer     buf;
-    FILE*       fp;
+    FILE        *fp;
 
     buf = (Pointer) malloc(rel->tup_size); 
-    if (buf == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", rel->tup_size ); 
-        abort(); 
-    } 
-
+    CHECK_MALLOC_WORK(buf);
+    
     FOPEN(fp, name, "rb");
 
     for(;;) 
@@ -180,18 +201,10 @@ PushBackTupleList(Relation* rel, Pointer data, Size size)
     RelTupleNode    *new_tuple; 
 
     new_tuple = (RelTupleNode *) malloc(sizeof(RelTupleNode)); 
-    if (new_tuple == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", sizeof(RelTupleNode)); 
-        abort(); 
-    } 
+    CHECK_MALLOC_WORK(new_tuple);
 
     new_tuple->data = (Pointer) malloc(size); 
-    if (new_tuple->data == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", size); 
-        abort(); 
-    } 
+    CHECK_MALLOC_WORK(new_tuple->data);
 
     memcpy(new_tuple->data, data, size);
     new_tuple->next = NULL;
@@ -237,15 +250,11 @@ DeleteRelation(Relation* rel)
 Relation * 
 InitRelation(RelAttribute *att, int32 att_n)
 {
-    Relation *rel;
-    Size tup_size = 0;
+    Relation    *rel;
+    Size        tup_size = 0;
 
     rel = (Relation *) malloc(sizeof(Relation)); 
-    if (rel == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", sizeof(Relation) ); 
-        abort(); 
-    } 
+    CHECK_MALLOC_WORK(rel);
 
     rel->att_n = att_n;
     rel->att = att;
@@ -284,8 +293,6 @@ CheckExistTuple_Arrchar(Relation *rel, int32 att_num,
         memcpy(buf, str, rel->att[att_num].size);
     }
 
-    // get offset 
-    offset = 0;
     GET_ATTRIBUTE_OFFSET(offset, att_num);
 
     // Search desired tuple 
@@ -316,12 +323,13 @@ CheckExistTuple_TwoArrchar(Relation *rel,
     RelTupleNode    *cur_tup;
 
     // buffer1 for comparison 
-    buf1 = (Pointer) malloc(sizeof(char) * rel->att[att_num1].size);
+    buf1 = (Pointer) malloc(rel->att[att_num1].size);
     memset(buf1, ' ', rel->att[att_num1].size);
     if (rel->att[att_num1].size > strlen(str1)) 
         memcpy(buf1, str1, strlen(str1));
     else 
         memcpy(buf2, str1, rel->att[att_num1].size);
+
 
     // buffer2 for comparison
     buf2 = (Pointer) malloc(sizeof(char) * rel->att[att_num2].size);
@@ -356,6 +364,158 @@ CheckExistTuple_TwoArrchar(Relation *rel,
     return found;
 }
 
+Relation *
+WhereRelation_int32 (Relation** rel_arg, ComparisonType comparison, 
+                     int32 att_num, int32 val, bool change_rel) 
+{
+    Relation        *rel = *rel_arg;
+    Relation        *new_rel;
+    int32           offset = 0;
+    RelTupleNode    *cur_tup;
+
+    new_rel = CopyRelationWithNoData(rel);
+
+    GET_ATTRIBUTE_OFFSET(offset, att_num);
+
+    cur_tup = rel->tup.head;
+
+    switch (comparison) 
+    {
+        case CT_EQUAL:
+            PUSH_TUPLES_BY_COMPARISON(int32, ==); 
+            break;
+        case CT_MORE:
+            PUSH_TUPLES_BY_COMPARISON(int32, >); 
+            break;
+        case CT_LESS:
+            PUSH_TUPLES_BY_COMPARISON(int32, <); 
+            break;
+        case CT_NOT_EQUAL:
+            PUSH_TUPLES_BY_COMPARISON(int32, !=);
+            break;
+    }
+
+    /*
+     * if change_rel is true, rel_arg was changed and returned
+     * else function returned new relation which was got using rel_arg
+     */ 
+    if (change_rel)
+    {
+        DeleteRelation(rel);
+        *rel_arg = new_rel;
+        return new_rel;
+    }
+    else
+    {
+        return new_rel;
+    }
+}
+/*
+    get relation header and array of attributes
+
+    for (int i = 0; i < rel->att_n; i++) {
+        new_rel->att[i].name = (char *) malloc(strlen(rel->att[i].name) + 1); 
+        CHECK_MALLOC_WORK(new_rel->att[i].name);
+
+        strcpy(new_rel->att[i].name, rel->att[i].name);
+        new_rel->att[i].type = rel->att[i].type;
+        new_rel->att[i].size = rel->att[i].size;
+    }
+    
+*/
+
+
+/*
+ * Sorting relation 
+ *
+ * When sort_type is 0, sorting will be ASC
+ * else will be DESC
+ */
+void
+OrderByRelation_int32(Relation *rel, int32 att_num, bool is_DESC) 
+{
+    if (rel->tup_n < 2) 
+        return 0;
+
+    int             offset = 0;
+    int32           *val_arr;
+    RelTupleNode    *cur_tup = rel->tup.head;
+    RelTupleNode    **tup_arr;
+
+    GET_ATTRIBUTE_OFFSET(offset, att_num);
+
+    val_arr = (int32 *) malloc(sizeof(int32) * rel->tup_n);
+    CHECK_MALLOC_WORK(val_arr);
+
+    tup_arr = (RelTupleNode **) malloc(sizeof(RelTupleNode *) * rel->tup_n);
+    CHECK_MALLOC_WORK(tup_arr);
+
+    for (int i = 0; i < rel->tup_n; i++) 
+    {
+        val_arr[i] = *((int32 *)(cur_tup->data + offset));
+        tup_arr[i] = cur_tup;
+        cur_tup = cur_tup->next;
+    }
+    
+    merge_int32(val_arr, tup_arr, 0, rel->tup_n - 1, is_DESC);
+    
+    rel->tup.head = tup_arr[0];
+    rel->tup.head->next = tup_arr[1];
+
+    cur_tup = rel->tup.head->next;
+    for (int i = 1; i < rel->tup_n - 1; i++) {
+        cur_tup = tup_arr[i];
+        cur_tup->next = tup_arr[i + 1];
+        cur_tup = cur_tup->next;
+    }
+
+    rel->tup.end = tup_arr[rel->tup_n - 1];
+    rel->tup.end->next = NULL;
+
+    return;
+}
+
+
+
+void 
+MergeSort_int32(int32 *val_arr, RelTupleNode **tup_arr, int32 l, int32 r, bool is_DESC) {
+    if (l == r) return;
+
+    int             mid = (l + r) / 2;
+    int32           i;
+    int32           j;
+    int32           *tmp1;
+    RelTupleNode    **tmp2;
+
+    merge_int32(val_arr, tup_arr, l, mid, is_DESC);
+    merge_int32(val_arr, tup_arr, mid + 1, r, is_DESC);
+
+    i = l;
+    j = mid + 1;
+
+    tmp1 = (int32 *)malloc((r - l + 1) * sizeof(int32));
+    CHECK_MALLOC_WORK(tmp1);
+
+    tmp2 = (RelTupleNode **) malloc((r - l + 1) * sizeof(RelTupleNode *));
+    CHECK_MALLOC_WORK(tmp2);
+
+    MERGE_SORT_LOOP_INT32(<);
+    
+    if (!is_DESC)   /* ASC */ 
+        MERGE_SORT_LOOP_INT32(<);
+    else            /* DESC */  
+        MERGE_SORT_LOOP_INT32(>);
+
+    for (int step = 0; step < (r - l + 1); step++) {
+        val_arr[l + step] = tmp1[step];
+        tup_arr[l + step] = tmp2[step];
+    }
+
+    free(tmp1);
+    free(tmp2);
+
+    return;
+}
 
 /*
 void 
@@ -386,53 +546,6 @@ whererel_arrchar(rel** rarg, char cond, int attnum, const char* val) {
     case '!':
         for (int i = 0; i < r->Ntup; i++) {
             if (memcmp(((char*)curtup->data + offset), buf, r->att[attnum].size) != 0)
-                tlist_pushback(newr, curtup->data, r->sizetup);
-            curtup = curtup->next;
-        }
-        break;
-    }
-
-    delrel(r);
-
-    *rarg = newr;
-}
-*/
-/*
-void 
-whererel_int32(rel** rarg, char cond, int attnum, int val) {
-    rel* r = *rarg;
-    rel* newr = CopyRelationWithNoData(r);
-    int offset = 0;
-    for (int i = 0; i < attnum; i++) {
-        offset += r->att[i].size;
-    }
-    tupnode* curtup = r->tup.head;
-
-    switch (cond) {
-    case '=':
-        for (int i = 0; i < r->Ntup; i++) {
-            if (*((int*)((char *)curtup->data + offset)) == val)
-                tlist_pushback(newr, curtup->data, r->sizetup);
-            curtup = curtup->next;
-        }
-        break;
-    case '>':
-        for (int i = 0; i < r->Ntup; i++) {
-            if (*((int*)((char*)curtup->data + offset)) > val)
-                tlist_pushback(newr, curtup->data, r->sizetup);
-            curtup = curtup->next;
-        }
-        break;
-    case '<':
-        for (int i = 0; i < r->Ntup; i++) {
-            if (*((int*)((char*)curtup->data + offset)) < val)
-                tlist_pushback(newr, curtup->data, r->sizetup);
-            curtup = curtup->next;
-        }
-        break;
-    case '!':
-        for (int i = 0; i < r->Ntup; i++) {
-            if (*((int*)((char*)curtup->data + offset)) != val)
                 tlist_pushback(newr, curtup->data, r->sizetup);
             curtup = curtup->next;
         }
@@ -740,91 +853,6 @@ rel* joinrel_arrchar(rel* r1, int attnum1, rel* r2, int attnum2) {
     }
 
     return newr;
-}
-*/
-/*
-int sortrel_int32(rel* r, int attnum, int sorttype) {
-    if (r->Ntup < 2) return 0;
-
-    int offset = 0;
-    for (int i = 0; i < attnum; i++) {
-        offset += r->att[i].size;
-    }
-    tupnode* curtup = r->tup.head;
-    int* valarr = (int*)malloc(sizeof(int) * r->Ntup);
-    tupnode** tuparr = (tupnode**)malloc(sizeof(tupnode*) * r->Ntup);
-
-    for (int i = 0; i < r->Ntup; i++) {
-        valarr[i] = *((int*)((char*)curtup->data + offset));
-        tuparr[i] = curtup;
-        curtup = curtup->next;
-    }
-    
-    merge_int32(valarr, tuparr, 0, r->Ntup - 1, sorttype);
-    
-    r->tup.head = tuparr[0];
-    r->tup.head->next = tuparr[1];
-
-    curtup = r->tup.head->next;
-    for (int i = 1; i < r->Ntup - 1; i++) {
-        curtup = tuparr[i];
-        curtup->next = tuparr[i + 1];
-        curtup = curtup->next;
-    }
-
-    r->tup.end = tuparr[r->Ntup - 1];
-    r->tup.end->next = NULL;
-
-    return 0;
-}
-*/
-
-/*
-void merge_int32(int* valarr, tupnode** tuparr, int l, int r, int sorttype) {
-    if (l == r) return;
-    int mid = (l + r) / 2;
-
-    merge_int32(valarr, tuparr, l, mid, sorttype);
-    merge_int32(valarr, tuparr, mid + 1, r, sorttype);
-
-    int i = l;
-    int j = mid + 1;
-    int* tmp1 = (int*)malloc((r - l + 1) * sizeof(int));
-    tupnode** tmp2 = (tupnode**)malloc((r - l + 1) * sizeof(tupnode*));
-    if (sorttype == INCREASE) {
-        for (int step = 0; step < (r - l + 1); step++) {
-            if ((j > r) || ((i <= mid) && (valarr[i] < valarr[j]))) {
-                tmp1[step] = valarr[i];
-                tmp2[step] = tuparr[i];
-                i++;
-            }
-            else {
-                tmp1[step] = valarr[j];
-                tmp2[step] = tuparr[j];
-                j++;
-            }
-        }
-    } else { // DECREASE
-        for (int step = 0; step < (r - l + 1); step++) {
-            if ((j > r) || ((i <= mid) && (valarr[i] > valarr[j]))) {
-                tmp1[step] = valarr[i];
-                tmp2[step] = tuparr[i];
-                i++;
-            }
-            else {
-                tmp1[step] = valarr[j];
-                tmp2[step] = tuparr[j];
-                j++;
-            }
-        }
-    }
-
-    for (int step = 0; step < (r - l + 1); step++) {
-        valarr[l + step] = tmp1[step];
-        tuparr[l + step] = tmp2[step];
-    }
-    free(tmp1);
-    free(tmp2);
 }
 */
 /*

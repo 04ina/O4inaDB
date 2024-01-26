@@ -1,4 +1,5 @@
 #include "./../c.h"
+#include "./../O4inaDB.h"
 #include "../access/relation.h"
 
 /*
@@ -17,20 +18,6 @@ typedef enum ArgumentType
     ARG_INT32,
     ARG_FLOAT32
 } ArgumentType;
-
-/*
- * Type of conditions for executing function 
- * which processing WHERE 
- */
-typedef enum ConditionType
-{
-    CT_EQUAL,
-    CT_NOT_EQUAL,
-    CT_LESS,
-    CT_MORE,
-    CT_LESS_OR_EQUAL,
-    CT_MORE_OR_EQUAL
-} ConditionType;
 
 /*
  * The module determines the type of parsing tree node
@@ -64,7 +51,7 @@ typedef struct PTModule_Where
     ArgumentType arg_type_2;
 
     // condition
-    ConditionType cond; 
+    ComparisonType cond; 
 } PTModule_Where;
 
 typedef struct PTModule_Select 

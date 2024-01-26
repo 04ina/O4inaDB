@@ -1,6 +1,17 @@
 #include <relation.h>
 #include <catalog_relations.h>
 
+/*
+ * At the moment, the system directory table with the relationships
+ * does not support an unambiguous identifier in the form of an ID
+ */
+typedef enum AttributesCatRels{
+    /* Unambiguous identification */
+    ACR_REL_NAME,
+    ACR_REL_FILE
+    //ACR_REL_ATTS_QUANTITY
+} AttributesCatRels;
+
 Relation *
 GetCatalogRelations(void) 
 {
@@ -8,40 +19,11 @@ GetCatalogRelations(void)
     Relation        *rel;
 
     att = (RelAttribute*) malloc(sizeof(RelAttribute) * NUM_ATT_CATALOG_RELATIONS);
-    if (att == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", \
-                sizeof(RelAttribute) * NUM_ATT_CATALOG_RELATIONS); 
-        abort(); 
-    } 
+    CHECK_MALLOC_WORK(att);
 
-    /*
-     * Init relid attribute
-     */
-    att[0].name = (AttName) malloc(strlen("relid") + 1);
-    if (att[0].name == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", \
-                strlen("relid")+1 ); 
-        abort(); 
-    } 
-    strcpy(att[0].name, "relid");
-    att[0].type = INT_32;
-    att[0].size = 4;
-
-    /*
-     * Init relname attribute
-     */
-    att[1].name = (AttName) malloc(strlen("relname") + 1);
-    if (att[1].name == NULL) 
-    { 
-        fprintf(stderr, "Fatal: failed to allocate %lu bytes.\n", \
-                strlen("relname")+1 ); 
-        abort(); 
-    } 
-    strcpy(att[1].name, "relname");
-    att[1].type = ARRCHAR;
-    att[1].size = 50;
+    FILL_IN_ATTRIBUTE_INFORMATION(ACR_REL_NAME, "rel_name", ARRCHAR, 50);
+    FILL_IN_ATTRIBUTE_INFORMATION(ACR_REL_FILE, "rel_file", ARRCHAR, 50);
+    //FILL_IN_ATTRIBUTE_INFORMATION(ACR_REL_ATTS_QUANTITY, "rel_atts_quantity", INT_32, 4);
 
     rel = InitRelation(att, NUM_ATT_CATALOG_RELATIONS);
 
@@ -57,3 +39,28 @@ CheckExistRelation(Relation *catalog_relations,
     return CheckExistTuple_Arrchar(catalog_relations, 1, rel_name);
 }
 
+
+/*
+ * Get relation using Relation name 
+ */
+Relation *
+GetRelation(Relation *catalog_relations, Relation *catalog_attributes,
+            const char *rel_name)
+{
+    RelAttribute    *att;
+    Relation        *rel;
+
+    att = (RelAttribute*) malloc(sizeof(RelAttribute) * NUM_ATT_CATALOG_RELATIONS);
+    CHECK_MALLOC_WORK(att);
+
+
+    GetRelationFile(const char *rel_name);
+
+
+
+    rel = InitRelation(att, NUM_ATT_CATALOG_RELATIONS);
+
+    ReadRelation(rel, "catalog_relations.rel");
+
+    return rel;
+}
