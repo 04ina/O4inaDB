@@ -1,3 +1,17 @@
+/*------------------------------------------------------------------------- 
+ *
+ * relation.h
+ * 
+ * functions for working with relation
+ * 
+ * IDENTIFICATION 
+ *      src/include/access/relation.h
+ * 
+ *------------------------------------------------------------------------- 
+ */
+#ifndef RELATION_H
+#define RELATION_H
+
 #include "../c.h"
 
 typedef enum AttType {    
@@ -9,7 +23,6 @@ typedef enum AttType {
     ARRCHAR,         
     PRIMARYKEY      
 } AttType;
-
 
 #define AGG_AVG         1
 #define AGG_SUM         2
@@ -42,9 +55,10 @@ typedef struct TupleList {
 
 // relation attributes
 typedef struct RelAttribute {
-    AttName name;
-    int32 type;
-    Size size;
+    AttName     name;
+    int32       type;
+    Size        size;
+    int32       number; 
 } RelAttribute;
 
 // relation
@@ -77,6 +91,13 @@ do \
     att[_att_num_].size = _size_; \
 } while(0) 
 
+#define GET_ATTRIBUTE_OFFSET(_offset_, _att_num_) \
+do \
+{ \
+    for (int i = 0; i < _att_num_; i++) \
+        _offset_ += rel->att[i].size; \
+} while (0)
+
 Relation *
 CopyRelationWithNoData(Relation* rel);
 
@@ -106,43 +127,24 @@ CheckExistTuple_TwoArrchar(Relation *rel,
                            int32 att_num1, const char *str1, 
                            int32 att_num2, const char *str2);
 
-/*
-void whererel_int32(rel** rarg, char cond, int attnum, int val);
+Relation *
+WhereRelation_int32(Relation** rel_arg, ComparisonType comparison, 
+                     int32 att_num, int32 val, bool change_rel);
+                     
+Relation *
+WhereRelation_arrchar(Relation** rel_arg, ComparisonType comparison, 
+                     int32 att_num, const char *val, bool change_rel);
+void
+OrderByRelation_int32(Relation *rel, int32 att_num, bool is_DESC);
 
-void whererel_arrchar(rel** rarg, char cond, int attnum, const char* val);
+static void 
+MergeSort_int32(int32 *val_arr, RelTupleNode **tup_arr, 
+                int32 l, int32 r, bool is_DESC);
 
-int sortrel_int32(rel* r, int attnum, int sorttype);
+void 
+GetRelationTuple(Relation *rel);
 
-rel* joinrel_int32(rel* r1, int attnum1, rel* r2, int attnum2);
+void 
+PrintRelation(Relation *rel);
 
-rel* joinrel_arrchar(rel* r1, int attnum1, rel* r2, int attnum2);
-
-rel* projectionrel(rel** rarg, int* attarg, int Natt);
-
-rel* group_arrchar_avg_int32(rel** rarg, int groupatt, int aggatt, int aggtype);
-
-void gettuple(rel* r);
-
-void delrel(rel* r);
-
-rel* relcpy_nodata(rel* r);
-
-rel* relcpy(rel* r);
-
-void relprint(rel* r);
-
-void readrel(rel* r, const char* name);
-
-void writerel(rel* r, const char* name);
-
-void relinfoprint(rel* r);
-
-rel* relinit(relatt* att, int Natt);
-
-// utils
-void print_strip(rel* r, int* maxsize);
-void tlist_pushback(rel* r, void* data, int size);
-void merge_int32(int* valarr, tupnode** tuparr, int l, int r, int sorttype);
-const char* atttypeget(int type);
-
-*/
+#endif /* RELATION_H */

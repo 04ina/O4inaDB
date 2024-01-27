@@ -1,3 +1,17 @@
+/*------------------------------------------------------------------------- 
+ *
+ * c.h
+ * 
+ * Extension of the C language
+ * 
+ * IDENTIFICATION 
+ *      src/include/c.h
+ *       
+ *------------------------------------------------------------------------- 
+ */
+#ifndef C_H
+#define C_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,6 +81,55 @@ typedef enum ComparisonType
     CT_MORE_OR_EQUAL
 } ComparisonType;
 
+/*
+ * Singly-linked list
+ */
+
+typedef struct SLListNode
+{
+    Pointer         data;
+    struct SLListNode  *next;
+} SLListNode;
+
+typedef struct SLList
+{
+    SLListNode *head;
+    SLListNode *down;
+} SLList;
+
+SLList
+InitSLList(void);
+
+void
+PushHeadSLList(SLList list, Pointer data);
+
+/*
+ * Doubly-linked list
+ */
+
+typedef struct DLListNode
+{
+    Pointer             data;
+    struct DLListNode  *next;
+    struct DLListNode  *past;
+} DLListNode;
+
+typedef struct DLList
+{
+    DLListNode *head;
+    DLListNode *down;
+} DLList;
+
+DLList
+InitDLList(void);
+
+void
+PushHeadDLList(DLList list, Pointer data);
+
+/*
+ * Other 
+ */
+
 #define max(a, b)  (((a) > (b)) ? (a) : (b)) 
 #define min(a, b)  (((a) < (b)) ? (a) : (b)) 
 
@@ -99,3 +162,5 @@ typedef enum ComparisonType
             abort(); \
         } \
     } while(0)
+
+#endif /* C_H */

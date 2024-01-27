@@ -1,25 +1,22 @@
 
 #include <parser.h>
-#include <parse_tree.h>
+#include <semantic_analysis.h>
 
 #include "sql.tab.h"
 
-ParseTree   *parse_tree;
+extern ParseTree   *parse_tree;
     
 void
 QueryParse(void)
 {
 
     /* Init parse tree */
-    parse_tree = InitParseTree();
-    
-    
+    InitParseTree();
      
-    
-    
     
     yyparse();
 
+    ParseTreeSemanticAnalysis(parse_tree);
 
    
 

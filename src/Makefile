@@ -38,3 +38,4 @@ clean:
 	rm -rf $(top_builddir)/$(subdir)/backend/executor/*.o
 	rm -rf $(top_builddir)/$(subdir)/backend/catalog/*.o
 	rm -rf $(top_builddir)/$(subdir)/backend/tcop/*.o
+	cd backend/parser/ ; rm -rf sql.c sql.h sql.output sql.tab.c sql.tab.h 

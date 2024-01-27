@@ -16,7 +16,7 @@ void yyerror(char *s, ...);
 void emit(char *s, ...);
 
 void 
-GotStringArg(const char *str);
+YYGotNAME(const char *str);
 
 extern ParseTree   *parse_tree;
 //current_val;
@@ -321,7 +321,7 @@ stmt_list: stmt ';'
  *                            Expressions
  * --------------------------------------------------------------------------------
  */
-expr: NAME         { printf("IA VSTRETIL NAME; %s, AHYETb\n",$1); free($1); printf("%p", parse_tree);} 
+expr: NAME         { printf("IA VSTRETIL NAME; %s, AHYETb\n",$1); free($1); printf("%p", parse_tree);   }
    | NAME '.' NAME { printf("FIELDNAME %s.%s\n", $1, $3); free($1); free($3); }
    | USERVAR       { printf("USERVAR %s\n", $1); free($1); }
    | STRING        { printf("STRING %s\n", $1); free($1); }
@@ -464,20 +464,12 @@ select_stmt:
      opt_where opt_groupby opt_having opt_orderby opt_limit
      opt_into_list 
      { 
-        printf("%d %d", $2, $4);
+         return 1;
      };
 ;
 
 /* States */
-state_select:
-   | SELECT 
-   {
-      YYCurState = YYState_SELECT; 
-   
-   };
 
-state_from:
-   | FROM { YYCurState = YYState_FROM; };
 
 state_where:
    | WHERE { YYCurState = YYState_WHERE; };
@@ -490,6 +482,32 @@ opt_groupby: /* nil */
    | GROUP BY groupby_list opt_with_rollup
                              { emit("GROUPBYLIST %d %d", $3, $4); }
 ;
+
+/* SELECT */
+state_select: SELECT 
+   { 
+      YYCurState = YYState_SELECT;
+      AddPTModule_SELECT();
+   };
+
+select_expr_list: select_expr 
+   | select_expr_list ',' select_expr
+   | '*' { YYGotNAME("*"); }
+   ;
+
+// select_expr: expr opt_as_alias ;
+select_expr: NAME { YYGotNAME($1);} ;
+
+/* FROM */
+state_from: FROM
+   { 
+      YYCurState = YYState_FROM; 
+   };
+
+table_references:  
+  | NAME { YYGotNAME($1); }
+  ;
+
 
 groupby_list: expr opt_asc_desc
                              { emit("GROUPBY %d",  $2); $$ = 1; }
@@ -526,12 +544,7 @@ column_list: NAME { emit("COLUMN %s", $1); free($1); $$ = 1; }
   ;
   
 
-select_expr_list: select_expr { $$ = 1; }
-    | select_expr_list ',' select_expr {$$ = $1 + 1; }
-    | '*' { emit("SELECTALL"); $$ = 1; }
-    ;
 
-select_expr: expr opt_as_alias ;
 
 opt_as_alias: AS NAME { emit ("ALIAS %s", $2); free($2); }
   | NAME              { emit ("ALIAS %s", $1); free($1); }
@@ -539,9 +552,6 @@ opt_as_alias: AS NAME { emit ("ALIAS %s", $2); free($2); }
   ;
   
          
-table_references:  
-  | NAME { printf("TABLE NAME; %s, AHYETb\n",$1); free($1); }
-  ;
 
   /* table_reference:  table_factor  | join_table ; */
 
@@ -956,19 +966,18 @@ yyerror(char *s, ...)
 }
 
 void 
-GotStringArg(const char *str)
+YYGotNAME(const char *str)
 {
-
    switch (YYCurState)
    {
       case YYState_SELECT:
-      //   parse_tree.rel_name = 
+         PushAttIntoPTModule_SELECT(str);
          break;
       case YYState_FROM:
-
+         AddRelationNameIntoPT(str);
          break; 
    }
-   
+   return;   
 }
 
 /*
