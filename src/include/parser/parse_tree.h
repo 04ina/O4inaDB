@@ -1,5 +1,18 @@
-#include "../access/relation.h"
+/*------------------------------------------------------------------------- 
+ *
+ * parse_tree.h
+ * 
+ * Tt is necessary to work with the parse_tree data type 
+ * 
+ * IDENTIFICATION 
+ *      src/include/parser/parse_tree.h
+ * 
+ *------------------------------------------------------------------------- 
+ */
+#ifndef PARSE_TREE_H
+#define PARSE_TREE_H
 
+#include "../access/relation.h"
 /* ----------------------------------------------------------------
  *				Section 1: main parse tree types and macros 
  * ----------------------------------------------------------------
@@ -43,14 +56,18 @@ typedef struct ParseTree
     RelName         rel_name;
     Relation        *rel;
 
-    PTModulePt *modlist_head;
-    PTModulePt *modlist_down;
+    PTModulePt      modlist_head;
+    PTModulePt      modlist_down;
 } ParseTree;
 
 /* ----------------------------------------------------------------
  *				Section 2: Module 
  * ----------------------------------------------------------------
  */
+
+#define OFFSET_NEXT_MODULE 0 
+#define OFFSET_PAST_MODULE sizeof(PTModulePt)
+#define OFFSET_TYPE_MODULE sizeof(PTModulePt) * 2
 
 /*
  *  Module types
@@ -83,9 +100,9 @@ typedef struct AttListNode
 /* select */
 typedef struct PTModule_Select 
 {
+    PTModulePt      next;
+    PTModulePt      past;
     PTModuleType    type;
-    PTModulePt      *next;
-    PTModulePt      *past;
 
     /* abolished is true, if we need to select all attributes */
     bool        abolished;
@@ -139,3 +156,5 @@ PushAttIntoPTModule_SELECT(const char *att_name);
 
 void
 AddRelationNameIntoPT(const char *rel_name);
+
+#endif /* PARSE_TREE_H */

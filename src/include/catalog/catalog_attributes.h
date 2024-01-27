@@ -30,3 +30,5 @@ GetCatalogAttributes(void);
 bool
 CheckExistAttribute(Relation *catalog_attributes, 
                     const char *rel_name, const char *att_name);
+int32
+GetNumberRelAttributes(Relation *catalog_attributes, const char *rel_name);

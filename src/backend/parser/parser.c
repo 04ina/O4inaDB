@@ -1,5 +1,6 @@
 
 #include <parser.h>
+#include <parse_tree.h>
 #include <semantic_analysis.h>
 
 #include "sql.tab.h"

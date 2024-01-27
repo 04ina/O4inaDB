@@ -1,3 +1,15 @@
+/*------------------------------------------------------------------------- 
+ *
+ * parse_tree.c
+ * 
+ * Tt is necessary to work with the parse_tree data type 
+ * 
+ * IDENTIFICATION 
+ *      src/backend/parser/parse_tree.c
+ * 
+ *------------------------------------------------------------------------- 
+ */
+
 #include <parse_tree.h>
 
 ParseTree   *parse_tree;
@@ -9,10 +21,10 @@ do \
         parse_tree->modlist_down == NULL) \
     { \
         PTModule->next = NULL; \
-        PTModule->past = (PTModulePt *)PTModule; \
+        PTModule->past = (PTModulePt)PTModule; \
+        parse_tree->modlist_head = (PTModulePt)PTModule; \
 \
-        parse_tree->modlist_head = (PTModulePt *)PTModule; \
-        parse_tree->modlist_down = (PTModulePt *)PTModule; \
+        parse_tree->modlist_down = (PTModulePt)PTModule; \
     } \
     else \
     { \
@@ -20,7 +32,7 @@ do \
         PTModule->past = parse_tree->modlist_head; \
 \
         memcpy(parse_tree->modlist_head+sizeof(PTModuleType), PTModule, sizeof(void *)); \
-        parse_tree->modlist_head = (PTModulePt *)PTModule; \
+        parse_tree->modlist_head = (PTModulePt)PTModule; \
     } \
 } while (0)
 
@@ -96,6 +108,9 @@ PushAttIntoPTModule_SELECT(const char *att_name)
         ((PTModule_Select *)parse_tree->modlist_head)->abolished = true;
         return;
     }
+    if (((PTModule_Select *)parse_tree->modlist_head)->abolished == true)
+        return;
+
     AttName         name;
     AttListNode     *node;
     PTModule_Select *PTModule;

@@ -81,7 +81,7 @@ typedef struct Relation {
 
 } Relation;
 
-#define FILL_IN_ATTRIBUTE_INFORMATION(_att_num_, _att_name_, _type_, _size_) \
+#define FILL_IN_ATT_INFO(_att_num_, _att_name_, _type_, _size_) \
 do \
 { \
     att[_att_num_].name = (AttName) malloc(strlen(_att_name_) + 1); \
