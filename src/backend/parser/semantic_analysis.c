@@ -178,14 +178,12 @@ SA_PTMT_Select(ParseTree *parse_tree, Relation *catalog_relations,
                 return false;
             }
         }
-        printf("aboba1\n");
         return true;
     }
 
     while(true)
     {
 
-        printf("aboba2\n");
         check = CheckExistAttribute(catalog_attributes, parse_tree->rel_name, cur_att->att_name);
         if (!check)
         {
