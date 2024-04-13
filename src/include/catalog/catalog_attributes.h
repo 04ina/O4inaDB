@@ -27,8 +27,13 @@ typedef enum AttributesCatAttsSize{
 Relation *
 GetCatalogAttributes(void);
 
-bool
+int32
 CheckExistAttribute(Relation *catalog_attributes, 
                     const char *rel_name, const char *att_name);
+
+int32
+GetAttributeType(Relation *catalog_attributes,
+                 const char *rel_name, const char *att_name);
+
 int32
 GetNumberRelAttributes(Relation *catalog_attributes, const char *rel_name);

@@ -18,7 +18,6 @@
  * ----------------------------------------------------------------
  */
 
-
 /*
  * Type of parse tree 
  */
@@ -44,7 +43,39 @@ typedef enum ArgumentType
 } ArgumentType;
 
 /* Pointer for modules*/
-typedef Pointer PTModulePt;
+//typedef Pointer PTModulePt;
+
+/*
+ * Module types
+ * 
+ * the values of the sequence elements correspond 
+ * to the execution priority of the modules
+ */
+typedef enum PTModuleType
+{
+    /* Main modules */
+    PTMOD_NONE = -1,
+    PTMOD_SELECT,
+    PTMOD_INSERT,
+    PTMOD_DELETE,
+    PTMOD_DROP,
+    PTMOD_UPDATE,
+
+    /* Optional modules */
+    PTMOD_JOIN,
+    PTMOD_WHERE,
+    PTMOD_GROUPBY,
+    PTMOD_ORDERBY,
+    PTMOD_LIMIT
+} PTModuleType;
+
+/* Used exclusively for forming */
+typedef struct PTModuleMain 
+{
+    struct PTModuleMain     *next;
+    struct PTModuleMain     *past;
+    PTModuleType        type;
+} PTModuleMain;
 
 /*
  * Parse Tree is needed for sequense 
@@ -53,46 +84,30 @@ typedef Pointer PTModulePt;
 typedef struct ParseTree 
 {
     ParseTreeType   type; 
-    RelName         rel_name;
+
     Relation        *rel;
 
-    PTModulePt      modlist_head;
-    PTModulePt      modlist_down;
+    Relation        *rels_attinfo;
+    int32           num_of_rels;
+    RelName         *rel_names;
+
+    PTModuleMain    *modlist_head;
+    PTModuleMain    *modlist_down;
 } ParseTree;
 
 /* ----------------------------------------------------------------
- *				Section 2: Module 
+ *				Section 2: Modules
  * ----------------------------------------------------------------
  */
 
-#define OFFSET_NEXT_MODULE 0 
-#define OFFSET_PAST_MODULE sizeof(PTModulePt)
-#define OFFSET_TYPE_MODULE sizeof(PTModulePt) * 2
 
-/*
- *  Module types
- */
-typedef enum PTModuleType
-{
-    /* Main modules */
-    PTMOD_SELECT,
-    PTMOD_INSERT,
-    PTMOD_DELETE,
-    PTMOD_DROP,
-    PTMOD_UPDATE,
-
-    /* Optional modules */
-    PTMOD_WHERE,
-    PTMOD_JOIN,
-    PTMOD_ORDERBY,
-    PTMOD_GROUPBY
-} PTModuleType;
 
 /*
  * list of attributes
  */
 typedef struct AttListNode
 {
+    RelName            rel_name; 
     AttName            att_name;
     struct AttListNode *next;
 } AttListNode;
@@ -100,24 +115,38 @@ typedef struct AttListNode
 /* select */
 typedef struct PTModule_Select 
 {
-    PTModulePt      next;
-    PTModulePt      past;
+    PTModuleMain    *next;
+    PTModuleMain    *past;
     PTModuleType    type;
 
     /* abolished is true, if we need to select all attributes */
     bool        abolished;
 
+
     /* list of attributes */
     AttListNode *attlist_head;
     AttListNode *attlist_down;
+
+    /* information received by the preprocessor. Needed for executor*/
+    int32       *attID;
+    int32       num_of_atts;
 } PTModule_Select;
 
 /* Order by*/
-typedef struct ModuleOrderby
+typedef struct PTModule_OrderBy 
 {
-    AttType type;
-    AttName name;
-} ModuleOrderby;
+    PTModuleMain    *next;
+    PTModuleMain    *past;
+    PTModuleType    type;
+
+    bool            is_desc;
+
+    RelName         rel_name; 
+    AttName         att_name;
+     
+    /* After semantic analysis */
+    AttType         att_type; 
+} PTModule_OrderBy;
 
 /* where */
 typedef struct PTModule_Where 
@@ -152,9 +181,21 @@ void
 AddPTModule_SELECT(void);
 
 void 
-PushAttIntoPTModule_SELECT(const char *att_name);
+PushAttIntoPTModule_SELECT(const char *arg_att_name, const char *arg_rel_name);
 
 void
 AddRelationNameIntoPT(const char *rel_name);
+
+PTModule_OrderBy *
+InitPTModule_OrderBy(void);
+
+void
+AddPTModule_OrderBy(void);
+
+void 
+PushAttIntoPTModule_OrderBy(const char *arg_att_name, const char *arg_rel_name);
+
+void 
+PushOrderIntoPTModule_OrderBy(bool is_desc);
 
 #endif /* PARSE_TREE_H */

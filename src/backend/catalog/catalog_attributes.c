@@ -24,13 +24,23 @@ GetCatalogAttributes(void)
     return rel;
 }
 
-bool
+/*
+ * Checks the existence of attribute
+ *
+ * If rel_name equal NULL, we make a selection only 
+ * by attributes in the attribute catalog 
+ */
+int32
 CheckExistAttribute(Relation *catalog_attributes, 
                     const char *rel_name, const char *att_name)
 {
-    return CheckExistTuple_TwoArrchar(catalog_attributes, 
-                                      ACR_ATT_REL_NAME, rel_name, 
-                                      ACR_ATT_NAME, att_name);
+    if (rel_name == NULL)
+        return CheckExistTuple_Arrchar(catalog_attributes, 
+                                        ACR_ATT_NAME, att_name);
+    else
+        return CheckExistTuple_TwoArrchar(catalog_attributes, 
+                                        ACR_ATT_REL_NAME, rel_name, 
+                                        ACR_ATT_NAME, att_name);
 }
 
 RelAttribute *
@@ -59,7 +69,6 @@ GetAttributes(Relation *catalog_relations, Relation *catalog_attributes,
     GET_ATTRIBUTE_OFFSET(offset, ACR_ATT_NAME);
     offset = 0;
 
-    PrintRelation(rel);
     // Search desired tuple 
     cur_tup = rel->tup.head;
     for (int i = 0; i < rel->tup_n; i++) 
@@ -90,6 +99,38 @@ GetAttributes(Relation *catalog_relations, Relation *catalog_attributes,
 }
 
 int32
+GetAttributeType(Relation *catalog_attributes,
+                 const char *rel_name, const char *att_name)
+{
+    Relation    *rel = (Relation *) malloc(sizeof(Relation));
+    int32       num_of_tuple = 0;
+    int32       offset = 0;
+    int32       result;
+     
+    if (rel_name == NULL)
+        rel = WhereRelation_arrchar(&catalog_attributes, CT_EQUAL,
+                                       ACR_ATT_NAME, att_name,
+                                       false);
+    else
+        rel = WhereRelation_TwoArrchar(&catalog_attributes, CT_EQUAL,
+                                       ACR_ATT_REL_NAME, rel_name, 
+                                       ACR_ATT_NAME, att_name,
+                                       false);
+
+    GET_ATTRIBUTE_OFFSET(offset, ACR_ATT_TYPE);
+
+    if (rel->tup_n != 1)
+    {
+        fprintf(stderr, "Fatal: there are several attributes with a single unique identifier.\n");
+        abort();
+    }
+    result = *((int32 *)(rel->tup.head->data + offset));
+    DeleteRelation(rel);
+
+    return result;
+}
+
+int32
 GetNumberRelAttributes(Relation *catalog_attributes, const char *rel_name)
 {
     int32           result;
@@ -100,7 +141,7 @@ GetNumberRelAttributes(Relation *catalog_attributes, const char *rel_name)
     /* get relations with attributes info*/
     rel = WhereRelation_arrchar(&catalog_attributes, CT_EQUAL, \
                                 ACR_ATT_REL_NAME, rel_name, false);
-    printf("---------%d-----------\n",rel->tup_n);                           
+
     result = rel->tup_n;
 
     return result;

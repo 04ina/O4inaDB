@@ -1,4 +1,14 @@
-#include <main.h>
+/*------------------------------------------------------------------------- 
+ *
+ * main.c
+ * 
+ * Main function of Litegres
+ * 
+ * IDENTIFICATION 
+ *      src/backend/main/main.c
+ *       
+ *------------------------------------------------------------------------- 
+ */
 #include <master.h>
 
 #include <stdio.h>
@@ -10,22 +20,58 @@
 #include <getopt.h>
 #include <unistd.h>
 
+/*
 #define no_argument 0
 #define required_argument 1
 #define optional_argument 2
+*/
 
-#include <buffer.h>
 
 #include <O4inaDB.h>
+#include <config.h>
 
-#include <relation.h>
+static void 
+help(void);
 
+/*
+ * everything start here
+ */
 
 void 
 main(int argc, char *argv[])
 {
+	/*
+		O4inaDBMain();
+	*/
+    if (argc > 1)
+    {
+        if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)
+        {
+            help();
+            exit(0);
+        }
+        else if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)
+        {
+            fprintf(stdout, "Litegres version: %s\n", LG_VERSION);
+            exit(0);
+        }
+    }
 
-	O4inaDBMain();
+    Master(argc, argv);
+}
+
+static void 
+help(void)
+{
+    fprintf(stdout,"Options:\n"); 
+}
+
+
+
+
+
+
+
 
 
 	
@@ -67,7 +113,6 @@ main(int argc, char *argv[])
 	ServerLoop();
 	*/
 
-}
 
 //void ServerLoop(void);
 //pid_t AuxiliaryProcessStartup

@@ -18,6 +18,9 @@ void emit(char *s, ...);
 void 
 YYGotNAME(const char *str);
 
+void 
+YYGotDoubleNAME(const char *str1, const char *str2);
+
 extern ParseTree   *parse_tree;
 //current_val;
 //current_type;
@@ -27,7 +30,8 @@ extern ParseTree   *parse_tree;
 typedef enum YYCurStateType {
    YYState_SELECT,
    YYState_FROM,
-   YYState_WHERE
+   YYState_WHERE,
+   YYState_ORDERBY
 } YYCurStateType;
 
 YYCurStateType YYCurState;
@@ -321,7 +325,7 @@ stmt_list: stmt ';'
  *                            Expressions
  * --------------------------------------------------------------------------------
  */
-expr: NAME         { printf("IA VSTRETIL NAME; %s, AHYETb\n",$1); free($1); printf("%p", parse_tree);   }
+expr: NAME         { YYGotNAME($1); }
    | NAME '.' NAME { printf("FIELDNAME %s.%s\n", $1, $3); free($1); free($3); }
    | USERVAR       { printf("USERVAR %s\n", $1); free($1); }
    | STRING        { printf("STRING %s\n", $1); free($1); }
@@ -460,7 +464,7 @@ stmt: select_stmt { emit("STMT"); }
 
 select_stmt:  
     | state_select select_expr_list 
-     state_from table_references
+     state_from from_expr_list 
      opt_where opt_groupby opt_having opt_orderby opt_limit
      opt_into_list 
      { 
@@ -469,7 +473,6 @@ select_stmt:
 ;
 
 /* States */
-
 
 state_where:
    | WHERE { YYCurState = YYState_WHERE; };
@@ -480,8 +483,28 @@ opt_where: /* nil */
 
 opt_groupby: /* nil */ 
    | GROUP BY groupby_list opt_with_rollup
-                             { emit("GROUPBYLIST %d %d", $3, $4); }
+                             { emit("GROUPBYLIST %d %d", $3, $4); };
+
+/* ORDER BY */
+state_orderby:
+   | ORDER BY 
+   {
+      YYCurState = YYState_ORDERBY;
+      AddPTModule_OrderBy();
+   }
 ;
+
+opt_orderby: /* nil */ 
+   | state_orderby orederby_list;
+
+orederby_list: NAME opt_asc_desc { YYGotNAME($1); }
+   | NAME '.' NAME { YYGotDoubleNAME($1, $3); }
+   ;
+
+opt_asc_desc: /* nil */ { PushOrderIntoPTModule_OrderBy(0); }
+   | ASC                { PushOrderIntoPTModule_OrderBy(0); }
+   | DESC               { PushOrderIntoPTModule_OrderBy(1); }
+    ;
 
 /* SELECT */
 state_select: SELECT 
@@ -496,13 +519,23 @@ select_expr_list: select_expr
    ;
 
 // select_expr: expr opt_as_alias ;
-select_expr: NAME { YYGotNAME($1);} ;
+select_expr: NAME { YYGotNAME($1); } 
+   | NAME '.' NAME { YYGotDoubleNAME($1, $3); }
+   ;
 
 /* FROM */
 state_from: FROM
    { 
       YYCurState = YYState_FROM; 
    };
+
+from_expr_list: from_expr
+   | from_expr_list ',' from_expr
+   ;
+
+from_expr:  
+  | NAME { YYGotNAME($1); }
+  ;
 
 table_references:  
   | NAME { YYGotNAME($1); }
@@ -527,9 +560,6 @@ opt_with_rollup: /* nil */  { $$ = 0; }
 opt_having: /* nil */ 
    | HAVING expr { emit("HAVING"); };
 
-opt_orderby: /* nil */ 
-   | ORDER BY groupby_list { emit("ORDERBY %d", $3); }
-   ;
 
 opt_limit: /* nil */ | LIMIT expr { emit("LIMIT 1"); }
   | LIMIT expr ',' expr             { emit("LIMIT 2"); }
@@ -971,13 +1001,29 @@ YYGotNAME(const char *str)
    switch (YYCurState)
    {
       case YYState_SELECT:
-         PushAttIntoPTModule_SELECT(str);
+         PushAttIntoPTModule_SELECT(str, NULL);
          break;
       case YYState_FROM:
          AddRelationNameIntoPT(str);
          break; 
+      case YYState_ORDERBY:
+         PushAttIntoPTModule_OrderBy(str, NULL);
+         break;
    }
-   return;   
+}
+
+void 
+YYGotDoubleNAME(const char *str1, const char *str2)
+{
+   switch (YYCurState)
+   {
+      case YYState_SELECT:
+         PushAttIntoPTModule_SELECT(str2, str1);
+         break;
+      case YYState_ORDERBY:
+         PushAttIntoPTModule_OrderBy(str2, str1);
+         break;
+   }
 }
 
 /*

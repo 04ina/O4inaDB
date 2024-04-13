@@ -21,21 +21,22 @@ do \
         parse_tree->modlist_down == NULL) \
     { \
         PTModule->next = NULL; \
-        PTModule->past = (PTModulePt)PTModule; \
-        parse_tree->modlist_head = (PTModulePt)PTModule; \
+        PTModule->past = (PTModuleMain *)PTModule; \
+        parse_tree->modlist_head = (PTModuleMain *)PTModule; \
 \
-        parse_tree->modlist_down = (PTModulePt)PTModule; \
+        parse_tree->modlist_down = (PTModuleMain *)PTModule; \
     } \
     else \
     { \
         PTModule->next = NULL; \
         PTModule->past = parse_tree->modlist_head; \
+        parse_tree->modlist_head->next = (PTModuleMain *)PTModule; \
 \
-        memcpy(parse_tree->modlist_head+sizeof(PTModuleType), PTModule, sizeof(void *)); \
-        parse_tree->modlist_head = (PTModulePt)PTModule; \
+        parse_tree->modlist_head = (PTModuleMain *)PTModule; \
     } \
 } while (0)
 
+#define NUM_OF_REL_NAMES sizeof(parse_tree->rel_names) / sizeof(AttName)
 
 void
 InitParseTree(void)
@@ -45,10 +46,12 @@ InitParseTree(void)
 
     InitModuleList();
 
-    parse_tree->rel_name = (RelName) malloc(RELATION_NAME_SIZE); 
-    CHECK_MALLOC_WORK(parse_tree->rel_name);
-
     parse_tree->type = PTT_NULL;
+
+    parse_tree->rels_attinfo = NULL;
+    parse_tree->num_of_rels = 0;
+    parse_tree->rel_names = (RelName *) malloc(sizeof(RelName));
+    CHECK_MALLOC_WORK(parse_tree->rel_names);
 }
 
 /*
@@ -101,31 +104,45 @@ AddPTModule_SELECT(void)
 }
 
 void 
-PushAttIntoPTModule_SELECT(const char *att_name)
+PushAttIntoPTModule_SELECT(const char *arg_att_name, const char *arg_rel_name)
 {
-    if (att_name[0] == '*')
+    if (arg_att_name[0] == '*')
     {
         ((PTModule_Select *)parse_tree->modlist_head)->abolished = true;
         return;
     }
+
     if (((PTModule_Select *)parse_tree->modlist_head)->abolished == true)
         return;
 
-    AttName         name;
+    AttName         att_name;
+    AttName         rel_name;
     AttListNode     *node;
     PTModule_Select *PTModule;
 
-    name = (AttName) malloc(ATTRIBUTE_NAME_SIZE);
-    CHECK_MALLOC_WORK(name);
+    /* create att_name string*/
+    att_name = (AttName) malloc(ATTRIBUTE_NAME_SIZE);
+    CHECK_MALLOC_WORK(att_name);
+    strcpy(att_name, arg_att_name);
 
-    strcpy(name, att_name);
+    /* create rel_name string*/
+    if (arg_rel_name == NULL)
+    {
+        rel_name = NULL;        
+    }
+    else
+    {
+        rel_name = (RelName) malloc(ATTRIBUTE_NAME_SIZE);
+        CHECK_MALLOC_WORK(rel_name);
+        strcpy(rel_name, arg_rel_name);
+    }
 
+    /* push names into attlist*/
     PTModule = (PTModule_Select *)parse_tree->modlist_head;
-
     node = (AttListNode *) malloc(sizeof(AttListNode));
     CHECK_MALLOC_WORK(node);
-
-    node->att_name = name;
+    node->att_name = att_name;
+    node->rel_name = rel_name;
 
     if (PTModule->attlist_head == NULL && \
         PTModule->attlist_down == NULL)
@@ -142,8 +159,6 @@ PushAttIntoPTModule_SELECT(const char *att_name)
         PTModule->attlist_head->next = node;
         PTModule->attlist_head = node;
     }
-
-    return;
 }
 
 /* ----------------------------------------------------------------
@@ -155,20 +170,99 @@ void
 AddRelationNameIntoPT(const char *rel_name)
 {
     RelName   name;
-
+    //snos 
     name = (RelName) malloc(RELATION_NAME_SIZE);
     CHECK_MALLOC_WORK(name);
 
     strcpy(name, rel_name);
 
-    parse_tree->rel_name = name;
+    /* If we need to resize rel_names*/
+    if (parse_tree->num_of_rels == NUM_OF_REL_NAMES)
+    {
+        parse_tree->rel_names = realloc(parse_tree->rel_names, 
+                                        NUM_OF_REL_NAMES * 2 * sizeof(AttName));
+        CHECK_REALLOC_WORK(parse_tree->rel_names); 
+    }   
+    parse_tree->rel_names[parse_tree->num_of_rels] = name;
+    parse_tree->num_of_rels++;
+}
+/* ----------------------------------------------------------------
+ *				        ORDER BY module
+ * ----------------------------------------------------------------
+ */
+
+/*
+ * Parse tree order by module initialization 
+ */
+PTModule_OrderBy *
+InitPTModule_OrderBy(void) 
+{
+    PTModule_OrderBy *PTModule;
+
+    PTModule = (PTModule_OrderBy *) malloc(sizeof(PTModule_OrderBy));
+    CHECK_MALLOC_WORK(PTModule);
+
+    PTModule->type = PTMOD_ORDERBY;
+    PTModule->is_desc = false;
+
+    PTModule->att_name = NULL;
+    PTModule->att_type = NONE_TYPE;
+
+    return PTModule;
+}
+
+/*
+ * Add order by module in parse tree
+ */
+void
+AddPTModule_OrderBy(void)
+{
+    PTModule_OrderBy *PTModule;
+
+    PTModule = InitPTModule_OrderBy();
+
+    PUSH_PT_MODULE; 
 
     return;
 }
 
+void 
+PushAttIntoPTModule_OrderBy(const char *arg_att_name, const char *arg_rel_name)
+{
+    AttName att_name;
+    RelName rel_name;
+    PTModule_OrderBy *PTModule;
 
+    att_name = (AttName) malloc(ATTRIBUTE_NAME_SIZE);
+    CHECK_MALLOC_WORK(att_name);
+    strcpy(att_name, arg_att_name);
 
+    if (arg_rel_name == NULL)
+    {
+        rel_name = NULL;
+    }
+    else
+    {
+        rel_name = (RelName) malloc(ATTRIBUTE_NAME_SIZE);
+        CHECK_MALLOC_WORK(rel_name);
+        strcpy(rel_name, arg_rel_name);
+    }
 
+    PTModule = (PTModule_OrderBy *)parse_tree->modlist_head;
+
+    PTModule->att_name = att_name;
+    PTModule->rel_name = rel_name;
+}
+
+void 
+PushOrderIntoPTModule_OrderBy(bool is_desc)
+{
+    PTModule_OrderBy *PTModule;
+
+    PTModule = (PTModule_OrderBy *)parse_tree->modlist_head;
+
+    PTModule->is_desc = is_desc;
+}
 
 /*
  *

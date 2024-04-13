@@ -1,3 +1,16 @@
+/*------------------------------------------------------------------------- 
+ *
+ * master.c
+ * 
+ * Master is the main process that listens to clients, 
+ * manage backends and auxiliary processes, allocates shared memory 
+ * 
+ * IDENTIFICATION 
+ *      src/backend/master/master.c
+ *       
+ *------------------------------------------------------------------------- 
+ */
+
 #include <master.h>
 
 #include <stdio.h>
@@ -7,8 +20,81 @@
 #include <string.h>
 
 #include <socket.h>
+#include <signal.h>
+#include <c.h>
+#include <elog.h>
+#include <auxprocess.h>
 
+#include <global_variables.h>
+
+/* 
+ * Changed after receiving a signal
+ * Used in ServerLoop()
+ */
+static volatile bool pending_master_shutdown = false;
+static volatile bool pending_child_shutdown = false;
+
+/*
+ * auxiliary process PIDs 
+ */
+static pid_t BgWriterPID = 0;
+static pid_t CheckPointerPID = 0;
+static pid_t SysLoggerPID = 0;
+
+/*
+ * Main entry point for Master process
+ */
 void 
+Master(int argc, char *argv[])
+{
+	InitProcessGlobals();
+
+	MasterProcID = ProcID;
+	ereport(ERROR, "aboba %d", argc);
+
+	/*
+	 * Handling POSIX signals
+	 */
+	signal(SIGINT,  MasterShutDownRequest);	
+	signal(SIGQUIT, MasterShutDownRequest);	
+	signal(SIGTERM, MasterShutDownRequest);	
+	signal(SIGCHLD, ChildShutDownRequest);
+
+	// args
+	// create context
+	// CreateSharedMemoryAndSemaphores();
+	// SysLoggerPID = SysLogger_Start();
+	// checkpointer start
+	// bgwriter start
+
+	//ServerLoop();
+	
+	abort();
+}
+
+static void
+MasterShutDownRequest(int signal_args)
+{
+	pending_master_shutdown = true;
+}
+
+static void
+ChildShutDownRequest(int signal_args)
+{
+	pending_child_shutdown = true;
+}
+
+/*
+	Initialisation global variables for all types of processes
+*/
+void
+InitProcessGlobals(void)
+{
+	ProcID = getpid();
+}
+
+
+static void 
 ServerLoop(void)
 {
 	SocketData MasterSocket; 
@@ -42,6 +128,65 @@ ServerLoop(void)
 
 }
 
+static pid_t
+StartAuxProcess(AuxProcType type)
+{
+	pid_t 	pid;
+
+	pid = fork();
+
+	if (pid == 0)
+	{
+		InitProcessGlobals();
+
+		// memory context	
+
+		AuxiliaryProcessMain(type);
+	}
+
+	if (pid < 0)
+	{
+		switch (type)
+		{
+			case BgWriterProcess:
+				ereport(ERROR, "could not fork BgWriter process");
+				// smart exit
+				break;
+			case CheckPointerProcess:
+				ereport(ERROR, "could not fork CheckPointer process");
+				// smart exit
+				break;
+			case SysLoggerProcess:
+				ereport(ERROR, "could not fork SysLogger process");
+				// smart exit
+				break;
+		}
+
+		// ExitMaster
+
+	}
+
+	return pid;
+}
+
+static void
+AuxiliaryProcessMain(AuxProcType type)
+{
+	switch (type)
+	{
+		case BgWriterProcess:
+			// ProcExit 
+			break;
+		case CheckPointerProcess:
+			// ProcExit 
+			break;
+		case SysLoggerProcess:
+			SysLoggerMain();
+			// ProcExit 
+			break;
+	}
+}
+
 int 
 BackendStartup (int BackendDes)
 {
@@ -50,7 +195,9 @@ BackendStartup (int BackendDes)
 	pid_t pid;
 	
 	//printf("%d",pid);
-	switch (pid=fork())
+
+	pid = fork();
+	switch (pid)
 	{
 	case -1:
 		perror("fork");

@@ -12,6 +12,7 @@ OBJS = \
 	$(top_builddir)/$(subdir)/backend/access/*.o \
 	$(top_builddir)/$(subdir)/backend/parser/*.o \
 	$(top_builddir)/$(subdir)/backend/tcop/*.o \
+	$(top_builddir)/$(subdir)/backend/utils/*.o \
 	$(top_builddir)/$(subdir)/backend/catalog/*.o 
 
 	#$(top_builddir)/$(subdir)/backend/executor/*.o \
@@ -38,4 +39,5 @@ clean:
 	rm -rf $(top_builddir)/$(subdir)/backend/executor/*.o
 	rm -rf $(top_builddir)/$(subdir)/backend/catalog/*.o
 	rm -rf $(top_builddir)/$(subdir)/backend/tcop/*.o
+	rm -rf $(top_builddir)/$(subdir)/backend/utils/*.o
 	cd backend/parser/ ; rm -rf sql.c sql.h sql.output sql.tab.c sql.tab.h 

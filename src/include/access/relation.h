@@ -14,14 +14,16 @@
 
 #include "../c.h"
 
+#define MAX_ATT_TYPE_NAME   20
+
 typedef enum AttType {    
+    NONE_TYPE = -1,
     INT_16,
     INT_32,   
     INT_64,          
     FLOAT_32,         
     DOUBLE_64,       
     ARRCHAR,         
-    PRIMARYKEY      
 } AttType;
 
 #define AGG_AVG         1
@@ -119,10 +121,10 @@ DeleteRelation(Relation* rel);
 Relation * 
 InitRelation(RelAttribute *att, int32 att_n);
 
-bool
+int32
 CheckExistTuple_Arrchar(Relation *rel, int32 att_num, 
                         const char *str);
-bool
+int32
 CheckExistTuple_TwoArrchar(Relation *rel, 
                            int32 att_num1, const char *str1, 
                            int32 att_num2, const char *str2);
@@ -146,5 +148,25 @@ GetRelationTuple(Relation *rel);
 
 void 
 PrintRelation(Relation *rel);
+
+String
+GetNameAttType_ByNum(AttType type);
+
+Relation *
+WhereRelation_TwoArrchar(Relation **rel_arg, ComparisonType comparison,
+                         int32 att_num1, const char *str1, 
+                         int32 att_num2, const char *str2,
+                         bool change_rel);
+
+int32
+UnionRelations(Relation *changeable_rel, Relation *insetrable_rel);
+
+int32
+GetTupleIDRelation_Arrchar(Relation *rel, int32 att_num, const char *val);
+
+int32
+GetTupleIDRelation_TwoArrchar(Relation *rel,
+                              int32 att_num1, const char *str1, 
+                              int32 att_num2, const char *str2);
 
 #endif /* RELATION_H */

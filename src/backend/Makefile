@@ -19,6 +19,8 @@ all:
 	#cd ..
 	cd catalog ; $(MAKE) -f Makefile
 	cd ..
+	cd utils ; $(MAKE) -f Makefile
+	cd ..
 	cd tcop ; $(MAKE) -f Makefile
 	cd ..
 

@@ -1,5 +1,16 @@
 {
     "files.associations": {
-        "parser.h": "c"
+        "parser.h": "c",
+        "string.h": "c",
+        "global_variables.h": "c",
+        "socket.h": "c",
+        "types.h": "c",
+        "time.h": "c",
+        "in.h": "c",
+        "stdlib.h": "c",
+        "unistd.h": "c",
+        "o4inadb.h": "c",
+        "config.h": "c",
+        "master.h": "c"
     }
 }

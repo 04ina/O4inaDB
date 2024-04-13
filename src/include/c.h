@@ -18,6 +18,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <errno.h>
 
@@ -154,6 +155,26 @@ PushHeadDLList(DLList list, Pointer data);
     } while(0)
 
 #define CHECK_MALLOC_WORK(pt) \
+    do \
+    { \
+        if ((pt) == NULL) \
+        { \
+            fprintf(stderr, "Fatal: failed to allocate memory.\n"); \
+            abort(); \
+        } \
+    } while(0)
+
+#define CHECK_REALLOC_WORK(pt) \
+    do \
+    { \
+        if ((pt) == NULL) \
+        { \
+            fprintf(stderr, "Fatal: failed to allocate memory.\n"); \
+            abort(); \
+        } \
+    } while(0)
+
+#define CHECK_CALLOC_WORK(pt) \
     do \
     { \
         if ((pt) == NULL) \
