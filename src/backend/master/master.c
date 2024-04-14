@@ -50,7 +50,6 @@ Master(int argc, char *argv[])
 	InitProcessGlobals();
 
 	MasterProcID = ProcID;
-	ereport(ERROR, "aboba %d", argc);
 
 	/*
 	 * Handling POSIX signals
